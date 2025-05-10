@@ -40,4 +40,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // 追加
+    debugImplementation(libs.flutter.debug)
+    releaseImplementation(libs.flutter.release)
 }
