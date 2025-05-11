@@ -13,10 +13,15 @@ import androidx.fragment.app.FragmentManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import io.flutter.embedding.android.FlutterFragment;
+import io.flutter.embedding.engine.FlutterEngine;
+import io.flutter.embedding.engine.FlutterEngineCache;
+import io.flutter.embedding.engine.dart.DartExecutor;
 
 public class MainActivity extends AppCompatActivity {
-    // フラグメントのタグ
-    static final String TAG_FLUTTER_FRAGMENT = "flutter_fragment";
+    static final String FLUTTER_ENGINE_ID   = "flutter_engine_id";
+
+    // FlutterEngine
+    private FlutterEngine flutterEngine;
 
     /// フラグメントを切り替えるメソッド
     private void switchFragment(Fragment fragment, String tag) {
@@ -36,18 +41,29 @@ public class MainActivity extends AppCompatActivity {
 
         // ナビゲーションの初期化
         BottomNavigationView navView = findViewById(R.id.bottom_navigation);
-
         // 初回はフラグメント1を表示
         if (savedInstanceState == null) {
             switchFragment(new FirstFragment(), null);
         }
 
-        // フラグメント2をFlutterFragmentに置き換える
-        FragmentManager fragmentManager = getSupportFragmentManager();
+        // FlutterEngineの初期化してFlutterEngineをキャッシュに保存
+        flutterEngine = new FlutterEngine(this);
+        flutterEngine.getNavigationChannel().setInitialRoute("/");
+        flutterEngine.getDartExecutor().executeDartEntrypoint(
+                DartExecutor.DartEntrypoint.createDefault()
+        );
+        // メソッドチャンネルを追加
+        FlutterSecondFragment.setMethodChannel(flutterEngine);
+        FlutterEngineCache
+                .getInstance()
+                .put(FLUTTER_ENGINE_ID, flutterEngine);
+
+        // Flutterのフラグメントを作成する
         // 追加済みのフラグメントを探す
         // フラグメントが存在していない場合は新規作成
-        FlutterFragment fragment = (FlutterFragment) fragmentManager.findFragmentByTag(TAG_FLUTTER_FRAGMENT);
-        FlutterFragment flutterFragment = (fragment == null) ? FlutterFragment.withNewEngine().initialRoute("/").build() : fragment;
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FlutterFragment fragment = (FlutterFragment) fragmentManager.findFragmentByTag(FlutterSecondFragment.TAG_FLUTTER_FRAGMENT);
+        FlutterFragment flutterFragment = (fragment == null) ? FlutterSecondFragment.withCachedEngine(FLUTTER_ENGINE_ID).build() : fragment;
 
         navView.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -61,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
                 // switchFragment(new SecondFragment());
 
                 // FlutterFragmentを表示
-                switchFragment(flutterFragment, TAG_FLUTTER_FRAGMENT);
+                switchFragment(flutterFragment, FlutterSecondFragment.TAG_FLUTTER_FRAGMENT);
             }
 
             return false;
